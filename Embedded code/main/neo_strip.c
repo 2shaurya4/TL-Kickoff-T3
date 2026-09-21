@@ -68,6 +68,24 @@ esp_err_t neo_set_all(uint8_t r, uint8_t g, uint8_t b)
     return led_strip_refresh(s_strip);
 }
 
+esp_err_t neo_set_pixel(uint32_t index, uint8_t r, uint8_t g, uint8_t b)
+{
+    ESP_RETURN_ON_FALSE(s_strip != NULL, ESP_ERR_INVALID_STATE, TAG,
+                        "call neo_init() first");
+    ESP_RETURN_ON_FALSE(index < NEO_LED_COUNT, ESP_ERR_INVALID_ARG, TAG,
+                        "pixel %lu is past the end of the strip",
+                        (unsigned long)index);
+
+    return led_strip_set_pixel(s_strip, index, scale(r), scale(g), scale(b));
+}
+
+esp_err_t neo_show(void)
+{
+    ESP_RETURN_ON_FALSE(s_strip != NULL, ESP_ERR_INVALID_STATE, TAG,
+                        "call neo_init() first");
+    return led_strip_refresh(s_strip);
+}
+
 esp_err_t neo_off(void)
 {
     ESP_RETURN_ON_FALSE(s_strip != NULL, ESP_ERR_INVALID_STATE, TAG,

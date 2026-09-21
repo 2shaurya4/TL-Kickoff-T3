@@ -19,14 +19,16 @@
 
 #include "neo_strip.h"
 #include "sensor_test.h"
+#include "strip_test.h"
 #include "tof_hcsr04.h"
 
-/*
- * 1 = bring-up mode: light the whole strip white and stream raw HC-SR04
- *     readings to the console, so one flash checks both halves of the build.
- * 0 = the actual proximity lamp.
- */
-#define APP_MODE_SENSOR_TEST  1
+/* ---- Which program to run. Change APP_MODE and reflash. ------------ */
+
+#define MODE_LAMP           0   /* the actual proximity lamp              */
+#define MODE_SENSOR_TEST    1   /* strip white + raw HC-SR04 readings     */
+#define MODE_STRIP_TEST     2   /* dim diagnostic patterns, sensor idle   */
+
+#define APP_MODE            MODE_STRIP_TEST
 
 /*
  * Brightness for the bring-up strip test, 0..255.
@@ -145,7 +147,10 @@ void app_main(void)
 {
     bool lit = false;
 
-#if APP_MODE_SENSOR_TEST
+#if APP_MODE == MODE_STRIP_TEST
+    strip_test_run();           /* never returns */
+
+#elif APP_MODE == MODE_SENSOR_TEST
     /* Whole strip on, full white, so any dead or mis-coloured pixel is
      * obvious while the sensor readings scroll past. */
     ESP_ERROR_CHECK(neo_init());

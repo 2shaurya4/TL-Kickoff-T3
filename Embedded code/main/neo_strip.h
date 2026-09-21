@@ -57,6 +57,15 @@ esp_err_t neo_set_all(uint8_t r, uint8_t g, uint8_t b);
 esp_err_t neo_off(void);
 
 /*
+ * Stage one pixel without transmitting. Brightness-scaled like neo_set_all.
+ * Nothing changes on the strip until neo_show().
+ */
+esp_err_t neo_set_pixel(uint32_t index, uint8_t r, uint8_t g, uint8_t b);
+
+/* Push whatever has been staged out to the strip. */
+esp_err_t neo_show(void);
+
+/*
  * Global scale, 0..255, applied on the next write. Does not repaint on its
  * own - call neo_set_all() again to see the change.
  */

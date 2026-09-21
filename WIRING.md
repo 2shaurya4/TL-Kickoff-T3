@@ -108,6 +108,70 @@ Put it physically at the strip, not at the board.
    pixels, feed the strip from its own 5 V supply and **tie that supply's GND to
    the DevKitC GND** — the data line needs a shared reference.
 
+## Powering the strip from its own 5 V supply
+
+Thirty-six pixels at full white is roughly 2.2 A, which no USB port will
+deliver through the board's 5 V pin. Once you go past a bench test, give the
+strip its own supply. The data line does not care where the strip's power
+comes from, so the ESP32 still drives it exactly as before.
+
+| From | To |
+|------|----|
+| PSU **+** | strip `5V` |
+| PSU **-** | strip `GND` |
+| PSU **-** | ESP32 `GND` |
+| ESP32 `IO7` -> 470 ohm | strip `DIN` |
+| 1000 uF **+** / **-** | strip `5V` / `GND` |
+
+```
+   5V DC supply
+   +----------+
+   |      (+) |----------------------+----------> strip 5V
+   |          |                      |
+   |          |                   [1000uF]
+   |          |                      |
+   |      (-) |----------+-----------+----------> strip GND
+   +----------+          |
+                         |  <- the critical wire
+   ESP32 (USB powered)   |
+   +----------+          |
+   |      GND |----------+
+   |      IO7 |---[470R]-------------------------> strip DIN
+   +----------+
+```
+
+Two rules:
+
+1. **Tie the grounds together.** A data line is a voltage measured against
+   ground. With two separate supplies and no shared reference the strip sees
+   noise rather than data and stays dark. This is the most common reason an
+   externally powered strip does nothing.
+
+2. **Do not feed the PSU into `5VIN` while USB is connected.** Power the board
+   from one source. Keep the ESP32 on USB, the strip on the PSU, and join only
+   the grounds.
+
+## If the strip stays dark
+
+Work down this list; each step rules out one cause.
+
+1. **Is the strip actually getting 5 V?** A WS2812B needs at least ~3.5 V and
+   realistically 4 V to light at all, so a strip wired to `3V3` will often show
+   nothing whatsoever. A dark strip on 3.3 V is not evidence of a data fault.
+
+2. **Count the pads.** Three (`5V`/`DIN`/`GND`) is a WS2812B and this driver
+   is correct. Four, with a `CI` or `CLK` pad, is an APA102 / DotStar, which
+   needs a separate clock line this driver does not generate.
+
+3. **Check the voltage marking.** A strip marked `12V` is a WS2811 with LEDs
+   in groups of three and will never light from 5 V.
+
+4. **Confirm which end is the input.** The arrows printed on the strip point
+   away from `DIN`. Feeding the output end does nothing at all.
+
+5. **Then, and only then, suspect the logic level.** See the level-shifting
+   note above.
+
 ## Build and flash
 
 ```sh
