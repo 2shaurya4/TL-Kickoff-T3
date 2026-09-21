@@ -1,0 +1,21 @@
+# Backups and autosaves
+*-backups/
+_autosave-*
+*.bak
+*.bck
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*-save.kicad_pcb
+*-save.pro
+*.000
+*~
+
+# Editor / tooling cruft
+.history/
+.vscode/
+
+# Per-machine local state — this is the important one
+*.kicad_prl
+fp-info-cache
+~*.lck
+\#auto_saved_files\#
