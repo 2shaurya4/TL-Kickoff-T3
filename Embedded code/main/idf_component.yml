@@ -1,0 +1,9 @@
+## IDF Component Manager manifest for the "main" component.
+## Dependencies are downloaded into managed_components/ on the next build.
+dependencies:
+  ## NeoPixel / WS2812-style addressable LED strips (RMT or SPI backend).
+  ## Espressif's official driver: https://components.espressif.com/components/espressif/led_strip
+  espressif/led_strip: "^2"
+
+  idf:
+    version: ">=5.0"
