@@ -1,13 +1,12 @@
 /*
- * main.c - Proximity lamp: light the NeoPixel strip whenever the HC-SR04
- *          sees something within about an inch of it.
+ * main.c - Proximity light show: when the HC-SR04 sees something within
+ *          about two inches, the strip fires a comet and holds a cycling
+ *          rainbow until the target leaves.
  *
- * Caveat worth knowing before you tune this: an inch (25 mm) is right on the
- * edge of what an HC-SR04 can do. Its published dead zone is 20 mm, and below
- * that it stops returning a usable echo entirely, so the whole "detected"
- * window here is 20..25 mm wide. Raise PROX_TRIGGER_MM to ~50-100 mm and the
- * system gets dramatically more dependable. The logic below is written so
- * that changing those two numbers is the only edit needed.
+ * Sensing and rendering are separate tasks on purpose. A proximity decision
+ * costs ~180 ms (three samples, 60 ms apart as the sensor requires) and an
+ * animation redrawn at 5 fps looks broken, so the render task runs at 50 fps
+ * off a flag this task sets. See anim.c for the effect itself.
  */
 
 #include <stdio.h>
@@ -17,6 +16,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "anim.h"
 #include "neo_strip.h"
 #include "sensor_test.h"
 #include "strip_test.h"
@@ -28,7 +28,7 @@
 #define MODE_SENSOR_TEST    1   /* strip white + raw HC-SR04 readings     */
 #define MODE_STRIP_TEST     2   /* dim diagnostic patterns, sensor idle   */
 
-#define APP_MODE            MODE_STRIP_TEST
+#define APP_MODE            MODE_LAMP
 
 /*
  * Brightness for the bring-up strip test, 0..255.
@@ -46,21 +46,18 @@ static const char *TAG = "main";
 
 /* ---- Tuning ------------------------------------------------------- */
 
-/* Light up at or inside this distance. 25 mm ~= 1 inch. */
-#define PROX_TRIGGER_MM     25
+/* Fire the animation at or inside this distance. 50 mm ~= 2 inches, which
+ * sits comfortably clear of the sensor's 20 mm dead zone. */
+#define PROX_TRIGGER_MM     50
 
-/* Turn back off only past this distance, so a target hovering on the
- * boundary does not strobe the strip. Must be > PROX_TRIGGER_MM. */
-#define PROX_RELEASE_MM     40
+/* Stop only past this distance, so a target hovering on the boundary does
+ * not machine-gun the animation on and off. Must be > PROX_TRIGGER_MM. */
+#define PROX_RELEASE_MM     75
 
 /* Readings per decision. Ultrasonic samples are noisy and the driver spaces
- * bursts 60 ms apart, so 3 costs ~180 ms per decision. */
+ * bursts 60 ms apart, so 3 costs ~180 ms per decision. The animation runs on
+ * its own task and is not held back by this. */
 #define PROX_SAMPLES        3
-
-/* Colour shown while something is close (pre-brightness-scaling). */
-#define PROX_COLOR_R        255
-#define PROX_COLOR_G        60
-#define PROX_COLOR_B        0
 
 _Static_assert(PROX_RELEASE_MM > PROX_TRIGGER_MM,
                "release distance must exceed trigger distance");
@@ -130,17 +127,6 @@ static bool sense_is_near(bool lit)
     return near_votes > far_votes;
 }
 
-/* ---- Startup self-test --------------------------------------------- */
-
-/* Blink once at boot so a dead strip is obvious before you start debugging
- * the sensor instead. */
-static void strip_selftest(void)
-{
-    ESP_ERROR_CHECK(neo_set_all(PROX_COLOR_R, PROX_COLOR_G, PROX_COLOR_B));
-    vTaskDelay(pdMS_TO_TICKS(300));
-    ESP_ERROR_CHECK(neo_off());
-}
-
 /* ---- Entry point ---------------------------------------------------- */
 
 void app_main(void)
@@ -166,27 +152,21 @@ void app_main(void)
 
     ESP_ERROR_CHECK(neo_init());
     ESP_ERROR_CHECK(tof_init());
+    ESP_ERROR_CHECK(anim_start());
 
-    strip_selftest();
-
-    ESP_LOGI(TAG, "watching: on at <=%d mm, off above %d mm",
+    ESP_LOGI(TAG, "watching: fire at <=%d mm (~2 in), release above %d mm",
              PROX_TRIGGER_MM, PROX_RELEASE_MM);
 
+    /* This task does nothing but sense. Everything the strip does is the
+     * render task's job, so a slow decision here never stutters a frame. */
     while (1) {
         const bool near = sense_is_near(lit);
 
         if (near != lit) {
-            esp_err_t err = near
-                ? neo_set_all(PROX_COLOR_R, PROX_COLOR_G, PROX_COLOR_B)
-                : neo_off();
-
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "strip update failed: %s", esp_err_to_name(err));
-            } else {
-                lit = near;
-                ESP_LOGI(TAG, "%s", lit ? "target close - strip on"
-                                        : "target gone - strip off");
-            }
+            lit = near;
+            anim_set_triggered(lit);
+            ESP_LOGI(TAG, "%s", lit ? "target close - firing"
+                                    : "target gone - fading out");
         }
 
         /* tof_read() already paces itself at 60 ms per burst, so this is
