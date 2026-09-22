@@ -4,4 +4,5 @@ idf_component_register(SRCS "main.c"
                             "anim.c"
                             "sensor_test.c"
                             "strip_test.c"
+                            "rfid_mfrc522.c"
                     INCLUDE_DIRS ".")
