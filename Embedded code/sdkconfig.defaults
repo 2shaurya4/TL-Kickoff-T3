@@ -1,0 +1,8 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+# Console on UART0, which is what the CH343 USB-UART bridge on this board is
+# wired to - that is the port you flash and monitor through.
+# ESP-IDF additionally leaves USB-Serial-JTAG on as a secondary console by
+# default on the S3, so the log also comes out the native USB port if you
+# ever move the cable there.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y

@@ -1,6 +1,6 @@
 /*
  * tof_hcsr04.h - Minimal ESP-IDF helper driver for an HC-SR04 ultrasonic
- *                distance sensor on a Seeed XIAO ESP32S3.
+ *                distance sensor on an ESP32-S3-DevKitC.
  *
  * Wiring note: the HC-SR04 needs 5 V on VCC and its ECHO pin idles/drives at
  * 5 V, which is NOT safe for the ESP32-S3 GPIOs. Put a level shifter or a
@@ -20,15 +20,14 @@ extern "C" {
 #endif
 
 /* ------------------------------------------------------------------ */
-/* Wiring - PLACEHOLDERS. Change these to the pins you actually used,  */
-/* or -D them from CMake / menuconfig.                                 */
+/* Wiring - matches KiCad/TL Kickoff T3.kicad_sch.                     */
 /* ------------------------------------------------------------------ */
 #ifndef TOF_TRIG_GPIO
-#define TOF_TRIG_GPIO       GPIO_NUM_5      /* <<< PLACEHOLDER (output) */
+#define TOF_TRIG_GPIO       GPIO_NUM_6      /* output, straight to sensor TRIG */
 #endif
 
 #ifndef TOF_ECHO_GPIO
-#define TOF_ECHO_GPIO       GPIO_NUM_6      /* <<< PLACEHOLDER (input, level-shifted) */
+#define TOF_ECHO_GPIO       GPIO_NUM_5      /* input, via the R1/R2 divider */
 #endif
 
 /* Datasheet range of the HC-SR04: roughly 2 cm .. 4 m. */
