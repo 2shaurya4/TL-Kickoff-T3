@@ -1,0 +1,14 @@
+# Flipper Zero application manifest. Build with ufbt from this directory:
+#   ufbt            - build the .fap
+#   ufbt launch     - build, upload to the Flipper and run it
+App(
+    appid="uid_stream",
+    name="UID Stream",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="uid_stream_app",
+    stack_size=4 * 1024,
+    fap_category="NFC",
+    fap_description="Polls for ISO14443-3A cards and streams their UIDs out the GPIO UART (pin 13 TX) at 115200 baud.",
+    fap_version=(1, 0),
+    requires=["gui"],
+)
